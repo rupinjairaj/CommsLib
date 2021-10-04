@@ -1,10 +1,10 @@
-package utilities;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.util.ArrayList;
 
 public class Config {
     private String filePath;
@@ -79,18 +79,26 @@ public class Config {
                 k--;
                 line = getNextValidLine(reader);
                 line = cleanLine(line);
-                // TODO: map network info here.
                 String items[] = lineItems(line);
+                int id = Integer.parseInt(items[0].trim());
+                String hostName = items[1].trim();
+                int port = Integer.parseInt(items[2].trim());
+                NodeInfo node = new NodeInfo(id, hostName, port);
+                networkInfo.addNode(node);
             }
 
             // n valid lines hold IDs of neighbors of kth node.
-            k = numNodes;
-            while (k > 0 && line != null) {
-                k--;                
+            k = 0;
+            while (k < numNodes && line != null) {
+                k++;
                 line = getNextValidLine(reader);
                 line = cleanLine(line);
-                // TODO: map node neighbor info here
                 String items[] = lineItems(line);
+                ArrayList<Integer> list = new ArrayList<Integer>();
+                for (String i : items) {
+                    list.add(Integer.parseInt(i));
+                }
+                networkInfo.setNeighbor(list);
             }
 
             reader.close();

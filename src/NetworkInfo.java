@@ -1,8 +1,8 @@
-package utilities;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class NetworkInfo {
 
@@ -13,10 +13,14 @@ public class NetworkInfo {
 
     // holds info about nodes and their neighbors.
     private static ArrayList<ArrayList<Integer>> neighbors = null;
+    // dictionary 'network' holds info about nodes in the network. 
+    // the key is the node ID.
+    private static HashMap<Integer, NodeInfo> network;
 
     private static String hostName;
 
     private NetworkInfo() {
+        network = new HashMap<>();
         try {
             hostName = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
@@ -40,12 +44,25 @@ public class NetworkInfo {
         return numberOfNodes;
     }
 
-    public void setNeighbor(int nodeID, ArrayList<Integer> neighborList) {
+    public void setNeighbor(ArrayList<Integer> neighborList) {
         if (numberOfNodes == -1)
             return;
-        if (neighbors == null)
-            neighbors = new ArrayList<>(numberOfNodes);
-        neighbors.set(nodeID, neighborList);
+        if (neighbors == null) {
+            neighbors = new ArrayList<ArrayList<Integer>>(numberOfNodes);
+        }
+        neighbors.add(neighborList);
+    }
+
+    public void addNode(NodeInfo node) {
+        if (network == null)
+            return;
+        network.put(node.id, node);
+    }
+
+    public NodeInfo getNode(int id) {
+        if (network == null)
+            return null;
+        return network.get(id);
     }
 
     public ArrayList<ArrayList<Integer>> getNeighbors() {
