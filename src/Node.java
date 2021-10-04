@@ -1,9 +1,9 @@
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -34,7 +34,7 @@ public class Node {
     }
 
     public NodeID[] getNeighbors() {
-        return (NodeID[]) neighbors.toArray();
+        return neighbors.toArray(new NodeID[0]);
     }
 
     public void send(Message message, NodeID destination) {
@@ -44,13 +44,13 @@ public class Node {
             InetAddress ip = InetAddress.getByName(dest.hostName);
             socket = new Socket(ip, dest.portNumber);
 
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-            DataInputStream dis = new DataInputStream(socket.getInputStream());
+            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
             // Serialize the message!
             message.source = identifier;
-            dos.write(message.toBytes());
-            dis.close();
-            dos.close();
+            outputStream.writeObject(message);
+            outputStream.close();
+            inputStream.close();
             socket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,6 +65,7 @@ public class Node {
 
     public void tearDown() {
         // TODO: Implement this
+        // Ask prof what to do here
     }
 
     /**
@@ -194,13 +195,16 @@ class NodeListener implements Runnable {
                 try {
                     s = serverSocket.accept();
                     System.out.println("A new client has connected!");
-                    DataOutputStream output = new DataOutputStream(s.getOutputStream());
-                    DataInputStream input = new DataInputStream(s.getInputStream());
-                    Message m = Message.getPayload(input.readAllBytes());
+                    // DataOutputStream output = new DataOutputStream(s.getOutputStream());
+                    // DataInputStream input = new DataInputStream(s.getInputStream());
+                    ObjectOutputStream output = new ObjectOutputStream(s.getOutputStream());
+                    ObjectInputStream input = new ObjectInputStream(s.getInputStream());
+                    // Message m = Message.getPayload(input.readObject());
+                    Message m = (Message) input.readObject();
                     listener.receive(m);
                     input.close();
                     output.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     s.close();
                     e.printStackTrace();
                 }

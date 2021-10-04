@@ -19,6 +19,7 @@ public class App {
         Scanner sc = new Scanner(System.in);
         sc.nextLine();
         node.send(m, destNode);
+        sc.close();
     }
 }
 
