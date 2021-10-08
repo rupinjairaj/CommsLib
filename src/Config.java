@@ -83,7 +83,7 @@ public class Config {
                 int id = Integer.parseInt(items[0].trim());
                 String hostName = items[1].trim();
                 int port = Integer.parseInt(items[2].trim());
-                NodeInfo node = new NodeInfo(id, hostName, port);
+                NodeInfo node = new NodeInfo(id, hostName, port, null, null, null);
                 networkInfo.addNode(node);
             }
 
