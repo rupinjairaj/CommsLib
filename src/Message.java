@@ -7,11 +7,11 @@ import java.io.Serializable;
 
 public class Message implements Serializable {
     NodeID source;
-    byte[] payload;
+    byte[] data;
 
     public Message(NodeID sourceId, byte[] payload) {
         this.source = sourceId;
-        this.payload = payload;
+        this.data = payload;
     }
 
     public byte[] toBytes() {
