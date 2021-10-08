@@ -4,11 +4,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,17 +14,23 @@ public class Node {
     private NodeID identifier;
 
     private int numberOfNodes;
-    private HashMap<Integer, NodeInfo> network;
+    public HashMap<Integer, NodeInfo> network;
     private ArrayList<NodeID> neighbors;
+    private Listener listener;
 
     public Node(NodeID identifier, String configFile, Listener listener) {
         this.identifier = identifier;
         this.network = new HashMap<Integer, NodeInfo>();
         this.neighbors = new ArrayList<NodeID>();
         this.readFile(configFile);
-        NodeListener nodeListener = new NodeListener(listener, network.get(identifier.getID()).portNumber);
+        this.listener = listener;
+        NodeListener nodeListener = new NodeListener(listener, network.get(identifier.getID()).portNumber,
+                this.neighbors, this.network);
         Thread listenerThread = new Thread(nodeListener, "th_serverListener");
         listenerThread.start();
+
+        // start making connections
+        connectWithNeighbours();
     }
 
     public NodeID[] getNeighbors() {
@@ -37,13 +40,6 @@ public class Node {
     public void send(Message message, NodeID destination) {
         NodeInfo dest = network.get(destination.getID());
         try {
-            if (!dest.socket.isConnected()) {
-                InetAddress address = InetAddress.getByName(dest.hostName);
-                SocketAddress socketAddress = new InetSocketAddress(address, dest.portNumber);
-                dest.socket.connect(socketAddress);
-                dest.outputStream = new ObjectOutputStream(dest.socket.getOutputStream());
-                dest.inputStream = new ObjectInputStream(dest.socket.getInputStream());
-            }
             message.source = identifier;
             dest.outputStream.writeObject(message);
         } catch (Exception e) {
@@ -58,8 +54,19 @@ public class Node {
     }
 
     public void tearDown() {
-        // TODO: Implement this
-
+        for (NodeID nodeID : neighbors) {
+            NodeInfo nodeInfo = network.get(nodeID.getID());
+            if (!nodeInfo.socket.isConnected())
+                continue;
+            try {
+                nodeInfo.outputStream.close();
+                nodeInfo.inputStream.close();
+                nodeInfo.socket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.exit(1);
     }
 
     /**
@@ -126,7 +133,7 @@ public class Node {
         File f = new File(getCurrentDir() + filePath);
         if (!f.exists() || f.isDirectory()) {
             System.out.println("No valid file path provided for Config file.");
-
+            System.exit(1);
         }
 
         BufferedReader reader;
@@ -136,7 +143,6 @@ public class Node {
 
             // first valid line
             line = getNextValidLine(reader);
-            System.out.println(line);
             line = cleanLine(line);
             this.numberOfNodes = Integer.parseInt(line);
 
@@ -178,15 +184,58 @@ public class Node {
     private String getCurrentDir() {
         return FileSystems.getDefault().getPath("").toAbsolutePath().toString();
     }
+
+    // connect to peers with higher IDs
+    private void connectWithNeighbours() {
+        for (NodeID nodeID : neighbors) {
+            if (nodeID.getID() < identifier.getID())
+                continue;
+            NodeInfo neighbourNode = network.get(nodeID.getID());
+            // keep trying to establish a connection with
+            // the peer every 5 seconds and exit the loop
+            // once the connection is established.
+            while (true) {
+                // sleep for 5 seconds
+                try {
+                    // ignore resource leak warning. This socket will be closed during tearDown()
+                    Socket socket = new Socket(neighbourNode.hostName, neighbourNode.portNumber);
+                    if (socket.isConnected()) {
+                        socket.setKeepAlive(true);
+                        neighbourNode.socket = socket;
+                        neighbourNode.outputStream = new ObjectOutputStream(socket.getOutputStream());
+                        neighbourNode.inputStream = new ObjectInputStream(socket.getInputStream());
+                        Message initMessage = new Message(this.identifier, null);
+                        neighbourNode.outputStream.writeObject(initMessage);
+                        network.put(neighbourNode.id, neighbourNode);
+                        PeerListener peerListener = new PeerListener(this.listener, network.get(neighbourNode.id));
+                        Thread listenerThread = new Thread(peerListener, "th_nodeListener" + neighbourNode.id);
+                        listenerThread.start();
+                        break;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }
 
 class NodeListener implements Runnable {
     private Listener listener;
     private int port;
+    private ArrayList<NodeID> neighbors;
+    public HashMap<Integer, NodeInfo> network;
 
-    public NodeListener(Listener listener, int port) {
+    public NodeListener(Listener listener, int port, ArrayList<NodeID> n, HashMap<Integer, NodeInfo> network) {
         this.listener = listener;
         this.port = port;
+        this.neighbors = n;
+        this.network = network;
     }
 
     @Override
@@ -197,16 +246,24 @@ class NodeListener implements Runnable {
                 Socket s = null;
 
                 try {
+                    // a new connection
                     s = serverSocket.accept();
                     s.setKeepAlive(true);
-                    System.out.println("A new client has connected!");
-                    ObjectOutputStream output = new ObjectOutputStream(s.getOutputStream());
-                    ObjectInputStream input = new ObjectInputStream(s.getInputStream());
-                    Message m = (Message) input.readObject();
-                    listener.receive(m);
-                    input.close();
-                    output.close();
-                    s.close();
+                    ObjectOutputStream outputStream = new ObjectOutputStream(s.getOutputStream());
+                    ObjectInputStream inputStream = new ObjectInputStream(s.getInputStream());
+                    Message initMessage = (Message) inputStream.readObject();
+                    for (NodeID id : neighbors) {
+                        NodeInfo nodeInfo = network.get(id.getID());
+                        if (nodeInfo.id == initMessage.source.getID()) {
+                            nodeInfo.socket = s;
+                            nodeInfo.outputStream = outputStream;
+                            nodeInfo.inputStream = inputStream;
+                            network.put(id.getID(), nodeInfo);
+                            PeerListener peerListener = new PeerListener(listener, nodeInfo);
+                            Thread listenerThread = new Thread(peerListener, "th_nodeListener" + nodeInfo.id);
+                            listenerThread.start();
+                        }
+                    }
                 } catch (Exception e) {
                     s.close();
                     e.printStackTrace();
@@ -215,6 +272,32 @@ class NodeListener implements Runnable {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+}
+
+class PeerListener implements Runnable {
+    private Listener listener;
+    private NodeInfo nodeInfo;
+
+    public PeerListener(Listener listener, NodeInfo nodeInfo) {
+        this.listener = listener;
+        this.nodeInfo = nodeInfo;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+
+            try {
+                Message m = (Message) this.nodeInfo.inputStream.readObject();
+                listener.receive(m);
+            } catch (Exception e) {
+                // e.printStackTrace();
+                listener.broken(new NodeID(nodeInfo.id));
+                break;
+            }
         }
     }
 
