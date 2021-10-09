@@ -213,7 +213,8 @@ public class Node {
                         break;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println("Failed to connect with node: " + nodeID.getID() + " Retrying in 5 seconds...");
+                    // e.printStackTrace();
                 }
                 try {
                     Thread.sleep(5000);
