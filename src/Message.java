@@ -23,7 +23,7 @@ public class Message implements Serializable {
             oos.flush();
             result = bos.toByteArray();
         } catch (IOException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
 
         return result;
@@ -36,7 +36,7 @@ public class Message implements Serializable {
             ois = new ObjectInputStream(bis);
             m = (Message) ois.readObject();
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
         return m;
     }

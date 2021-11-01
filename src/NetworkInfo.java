@@ -24,7 +24,7 @@ public class NetworkInfo {
         try {
             hostName = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 

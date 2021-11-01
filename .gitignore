@@ -2,3 +2,4 @@
 /bin
 /local-test
 *.jar
+.idea
