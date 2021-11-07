@@ -100,15 +100,11 @@ class Application implements Listener {
                 StringBuilder builder = new StringBuilder();
                 ArrayList<Integer> nodes = this.kHop.get(i);
                 builder.append(i + ": ");
-                // System.out.println("Round #: " + i);
-                // System.out.print("Nodes: ");
                 for (Integer node : nodes) {
                     builder.append(node + " ");
-                    // System.out.print(node + " ");
                 }
                 bw.write(builder.toString());
                 bw.newLine();
-                // System.out.println();
             }
             bw.close();
             fw.close();

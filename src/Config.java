@@ -3,7 +3,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,6 +14,7 @@ public class Config {
     private int numberOfNodes;
     private HashMap<Integer, NodeInfo> network;
     private ArrayList<NodeID> neighbors;
+    private int lowerIDNodeCnt = 0;
 
     private Config() {
         this.network = new HashMap<Integer, NodeInfo>();
@@ -49,8 +49,15 @@ public class Config {
         network.put(node.id, node);
     }
 
+    public int getLowerIDNeighborCnt() {
+        return this.lowerIDNodeCnt;
+    }
+
     // update the node's neighbour list
     public void addNeighbor(NodeID node) {
+        if (node.getID() < this.identifier.getID()) {
+            this.lowerIDNodeCnt++;
+        }
         NodeInfo neighbor = network.get(node.getID());
         // creates a socket to the neighbor node. It however
         // does not connect to it yet. Connection is handled the
@@ -112,7 +119,7 @@ public class Config {
      * list of neighbors for node 0
      */
     public void readFile(String filePath) {
-        File f = new File(getCurrentDir() + filePath);
+        File f = new File(filePath);
         if (!f.exists() || f.isDirectory()) {
             System.out.println("No valid file path provided for Config file.");
             System.exit(1);
@@ -121,7 +128,7 @@ public class Config {
         BufferedReader reader;
         String line;
         try {
-            reader = new BufferedReader(new FileReader(getCurrentDir() + filePath));
+            reader = new BufferedReader(new FileReader(filePath));
 
             // first valid line
             line = getNextValidLine(reader);
@@ -161,10 +168,4 @@ public class Config {
             // e.printStackTrace();
         }
     }
-
-    // helper method to get the dir of projects
-    private String getCurrentDir() {
-        return FileSystems.getDefault().getPath("").toAbsolutePath().toString();
-    }
-
 }

@@ -66,7 +66,6 @@ public class Node {
                 // e.printStackTrace();
             }
         }
-        System.exit(1);
     }
 
     // connect to peers with higher IDs
@@ -100,11 +99,11 @@ public class Node {
                         break;
                     }
                 } catch (Exception e) {
-                    System.out.println("Failed to connect with node: " + nodeID.getID() + " Retrying in 5 seconds...");
+                    System.out.println("Failed to connect with node: " + nodeID.getID() + " Retrying in 1 second(s)...");
                     // e.printStackTrace();
                 }
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                 } catch (Exception e) {
                     // e.printStackTrace();
                 }
@@ -113,7 +112,7 @@ public class Node {
         // this block of code ensures that the Node class initialization call from
         // the Application does not relinquish control back to the Application until
         // a connection has been established with all its neighbors.
-        while (this.getConnectedNeighborCount() != Config.getInstance().getNighbors().length) {
+        while (this.getConnectedNeighborCount() < Config.getInstance().getNighbors().length) {
             try {
                 synchronized (this) {
                     wait();
@@ -129,6 +128,7 @@ class NodeListener implements Runnable {
     private Listener listener;
     private int port;
     private Node node;
+    private int lowerConns = 0;
 
     public NodeListener(Listener listener, Node node) {
         this.listener = listener;
@@ -140,7 +140,7 @@ class NodeListener implements Runnable {
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
-            while (node.getConnectedNeighborCount() != Config.getInstance().getNighbors().length) {
+            while (lowerConns < Config.getInstance().getLowerIDNeighborCnt()) {
                 Socket s = null;
 
                 try {
@@ -153,17 +153,16 @@ class NodeListener implements Runnable {
                     NodeID[] neighbors = Config.getInstance().getNighbors();
                     for (NodeID id : neighbors) {
                         NodeInfo nodeInfo = Config.getInstance().getNodeInfo(id.getID());
-                        // network.get(id.getID());
                         if (nodeInfo.id == initMessage.source.getID()) {
                             nodeInfo.socket = s;
                             nodeInfo.outputStream = outputStream;
                             nodeInfo.inputStream = inputStream;
                             Config.getInstance().setNodeInfo(nodeInfo);
-                            // network.put(id.getID(), nodeInfo);
                             PeerListener peerListener = new PeerListener(listener, nodeInfo);
                             Thread listenerThread = new Thread(peerListener, "th_nodeListener" + nodeInfo.id);
                             listenerThread.start();
                             node.incrementConnectedNeighborCount();
+                            this.lowerConns++;
                         }
                     }
                 } catch (Exception e) {
@@ -176,7 +175,6 @@ class NodeListener implements Runnable {
             // e.printStackTrace();
         }
     }
-
 }
 
 class PeerListener implements Runnable {
@@ -202,5 +200,4 @@ class PeerListener implements Runnable {
             }
         }
     }
-
 }
