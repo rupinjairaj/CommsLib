@@ -1,6 +1,6 @@
 ## Getting Started
 
-Project code for **CS6378 Advanced Operating Systems** *Project 1*
+Project code for **CS6378 Advanced Operating Systems** *Project 2*
 
 ## Folder Structure
 
@@ -20,10 +20,10 @@ Project code for **CS6378 Advanced Operating Systems** *Project 1*
     src$ cp ./config ../bin/config
 </code>
 
-> Step 3) cd into bin and run application `NOTE: Please start the nodes in decreasing order of node ID. (Eg: Given nodes: 1, 2, 3, 4 -> start node 4, then node 3, then node 2 and finally node 1. This does not affect the working of the system but prevents unnecessary logging done when the node fails to connect with a peer and attempts to connect again. The system does work either way. This note is just for ease of usability`.
+> Step 3) cd into bin and run application .
 <code>
 
-    bin$ java Main [nodeID] [path to config file from pwd starting with a '/']
+    bin$ java Main [nodeID] [name of config file in the same directory as the executable]
 </code>
 
 ## Team Members
