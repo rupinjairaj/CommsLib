@@ -1,26 +1,22 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 //Payload needs to be serializable in order to convert it to byte array
 class Payload implements java.io.Serializable {
 	// Payload may be configured as per the need of the application
-	// if type is 0 -> requesting round info of roundNumber
-	// if type is 1 -> sending round info for roundNumber
-	// if type is 2 -> indicating that the node is done collecting all k-1 round
-	// info
+	// if type is 0 -> requesting lock access
+	// if type is 1 -> granting lock access
+	// if type is 2 -> the peer has finished and will not send messages anymore
 	int messageType;
-	int roundNumber;
-	ArrayList<Integer> nodeIDs;
+	int clockVal;
 
 	// Constructor
-	public Payload(int messageType, int roundNumber, ArrayList<Integer> nodeIDs) {
+	public Payload(int messageType, int clockVal) {
 		this.messageType = messageType;
-		this.nodeIDs = nodeIDs;
-		this.roundNumber = roundNumber;
+		this.clockVal = clockVal;
 	}
 
 	// Method to convert an instance of payload to a byte array
@@ -51,9 +47,7 @@ class Payload implements java.io.Serializable {
 		// Input streams help with deserialization
 		ByteArrayInputStream bis = new ByteArrayInputStream(data);
 		ObjectInputStream ois = null;
-		ArrayList<Integer> list = new ArrayList<>();
-		int roundNumber = 0;
-		Payload p = new Payload(0, roundNumber, list);
+		Payload p = new Payload(0, 0);
 		try {
 			ois = new ObjectInputStream(bis);
 			p = (Payload) ois.readObject();

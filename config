@@ -1,10 +1,10 @@
 #Ring topology
 5
-0 dc02 12435 # nodeID hostName listeningPort
-1 dc03 11436
-2 dc04 22434
-3 dc05 15431
-4 dc06 16438
+0 localhost 12435 # nodeID hostName listeningPort
+1 localhost 11436
+2 localhost 22434
+3 localhost 15431
+4 localhost 16438
 1 2 3 4 # space delimited list of neighbors for node 0
 0 2 3 4 # space delimited list of neighbors for node 1
 0 1 3 4 # ... node 2
