@@ -39,6 +39,9 @@ public class DLock implements Listener {
                 e.printStackTrace();
             }
         }
+        // at this point the node has obtained the lock
+        // and control is relinquished back to the application
+        // to execute the critical section
     }
 
     public synchronized void unlock() {

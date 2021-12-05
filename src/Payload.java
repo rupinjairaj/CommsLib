@@ -10,6 +10,10 @@ class Payload implements java.io.Serializable {
 	// if type is 0 -> requesting lock access
 	// if type is 1 -> granting lock access
 	// if type is 2 -> the peer has finished and will not send messages anymore
+	// if type is 3 -> the peer sends this to the central server to denote it holds
+	// the lock and is excuting the CS
+	// if type is 4 -> the peer sends this to the central server to denote it holds
+	// the lock and is excuting the CS
 	int messageType;
 	int clockVal;
 

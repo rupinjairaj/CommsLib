@@ -1,3 +1,7 @@
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
 class Application {
 
     private NodeID myID;
@@ -6,7 +10,6 @@ class Application {
     private int avgCSExeTime;
     private int numOfCSReqs;
     private DLock lock;
-    public int activeNeighborsCount;
 
     public Application(NodeID id, String configFile, int avgInterReqDelay, int avgCSExeTime, int numOfCSReqs) {
         this.myID = id;
@@ -16,10 +19,24 @@ class Application {
         this.numOfCSReqs = numOfCSReqs;
     }
 
+    private void notifyServer(int messageType) {
+        try {
+            Socket socket = new Socket("localhost", 8080);
+            Payload payload = new Payload(messageType, -1);
+            Message message = new Message(this.myID, payload.toBytes());
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            oos.writeObject(message);
+            oos.close();
+            ois.close();
+            socket.close();
+        } catch (Exception e) {
+        }
+    }
+
     public synchronized void run() {
         this.lock = new DLock(this.myID, this.configFile);
-        this.activeNeighborsCount = Config.getInstance().getNighbors().length;
-        
+
         // run this loop for 'numOfCSReqs' iterations
         while (numOfCSReqs-- > 0) {
             try {
@@ -30,16 +47,20 @@ class Application {
                 System.out.printf("Node is awake. Generating CS req #: %d\n",
                         numOfCSReqs + 1);
                 this.lock.lock();
-                System.out.printf("Lock obtained. Node will now sleep for %d seconds to simulate 'work'\n",
+                System.out.printf(
+                        "Lock obtained. Node will first send the central server a message and then sleep for %d seconds to simulate 'work'\n",
                         avgCSExeTime);
+                this.notifyServer(3);
                 Thread.sleep(avgCSExeTime * 1000);
-                System.out.println("Releasing lock.");
+                System.out
+                        .println(
+                                "Node awake. Notifying the central server that it's leaving the CS and then releasing lock.");
+                this.notifyServer(4);
                 this.lock.unlock();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        System.out.println("System generated all its CS requests");
     }
 
 }
