@@ -7,6 +7,7 @@ public class DLock implements Listener {
     private Node node;
     private LogicalClock clock;
     private Payload pendingLockReq = null;
+    private int activeNeighborsCount;
 
     // Stores all the lock request messages that
     // this node didn't reply to because its own
@@ -23,6 +24,7 @@ public class DLock implements Listener {
         System.out.println("Connection established with all neighbors!");
         this.pendingGrantMessages = Config.getInstance().getNighbors().length;
         this.deferredRequests = new ConcurrentLinkedDeque<>();
+        this.activeNeighborsCount = Config.getInstance().getNighbors().length;
     }
 
     public synchronized void lock() {
@@ -61,6 +63,19 @@ public class DLock implements Listener {
         this.node.send(grantMsg, destNodeID);
     }
 
+    public synchronized void notifyPeersAndAwaitPeerCompletion() {
+        Payload donePayload = new Payload(2, -1);
+        Message doneMessage = new Message(this.nodeID, donePayload.toBytes());
+        this.node.sendToAll(doneMessage);
+        while (this.activeNeighborsCount > 0) {
+            try {
+                wait();
+            } catch (Exception e) {
+            }
+        }
+        this.node.tearDown();
+    }
+
     @Override
     public synchronized void receive(Message message) {
         Payload inPayload = Payload.getPayload(message.data);
@@ -82,8 +97,9 @@ public class DLock implements Listener {
         } else if (inPayload.messageType == 1) {
             // lock grant message
             this.pendingGrantMessages--;
-        } else {
-            // this.activeNeighborsCount--;
+        } else if (inPayload.messageType == 2) {
+            // peer completes all its CS tasks
+            this.activeNeighborsCount--;
         }
         notifyAll();
     }

@@ -21,7 +21,7 @@ class Application {
 
     private void notifyServer(int messageType) {
         try {
-            Socket socket = new Socket("localhost", 8080);
+            Socket socket = new Socket("dc01", 8080);
             Payload payload = new Payload(messageType, -1);
             Message message = new Message(this.myID, payload.toBytes());
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
@@ -61,6 +61,7 @@ class Application {
                 e.printStackTrace();
             }
         }
+        this.lock.notifyPeersAndAwaitPeerCompletion();
     }
 
 }

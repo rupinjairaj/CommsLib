@@ -3,3 +3,4 @@
 /local-test
 *.jar
 .idea
+*.class

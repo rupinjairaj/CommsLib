@@ -3,32 +3,16 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-
-class LockDetails {
-    public NodeID holder;
-    public Date lockAcquiredAt;
-    public Date lockReleaseAt;
-}
 
 public class Server {
 
-    private int numOfCSReqs;
-    private int numberOfNodes;
+    private int portNum;
+    private int expectedNumOfCSReqs;
 
     // Should be equal to (numberOfNodes) * (numOfCSReqs)
     private int numOfCSReqsExecuted = 0;
 
-    private List<LockDetails> history;
-
-    HashMap<Integer, Integer> perNodeStatus;
-
     public Server() {
-        this.perNodeStatus = new HashMap<>();
     }
 
     public synchronized int incNumOfCSReqsExecuted() {
@@ -36,37 +20,19 @@ public class Server {
     }
 
     public synchronized boolean targetComplete() {
-        return numOfCSReqsExecuted == (numOfCSReqs * numberOfNodes);
-    }
-
-    public synchronized void addLockAcquiredToHistory(NodeID nId) {
-        LockDetails lockDetails = new LockDetails();
-        lockDetails.holder = nId;
-        lockDetails.lockAcquiredAt = Date.from(Instant.now());
-        this.history.add(lockDetails);
-    }
-
-    public synchronized void addLockReleasedToHistory(NodeID nId) {
-        if (this.history.get(this.history.size() - 1).holder.getID() != nId.getID()) {
-            // because the last node to acquire the lock
-            // should be the first to release it
-            System.out.println("Impossible block!");
-        }
-        LockDetails lockDetails = this.history.get(this.history.size() - 1);
-        lockDetails.lockReleaseAt = Date.from(Instant.now());
+        return numOfCSReqsExecuted == expectedNumOfCSReqs;
     }
 
     public static void main(String[] args) {
         Server server = new Server();
         if (args.length < 2) {
             System.out.println(
-                    "Insufficient args. Usage: \n\t java Server [num of cs reqs] [num of nodes in the system]");
+                    "Insufficient args. Usage: \n\t java Server [port number] [expected num of cs reqs]");
             return;
         }
-        server.history = new ArrayList<>();
-        server.numOfCSReqs = Integer.parseInt(args[0]);
-        server.numberOfNodes = Integer.parseInt(args[1]);
-        ServerListener listener = new ServerListener(server, 8080);
+        server.portNum = Integer.parseInt(args[0]);
+        server.expectedNumOfCSReqs = Integer.parseInt(args[1]);
+        ServerListener listener = new ServerListener(server, server.portNum);
         Thread listenerThread = new Thread(listener, "th_serverListener");
         listenerThread.start();
         try {
@@ -74,6 +40,8 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("Number of CS requests: " + server.expectedNumOfCSReqs);
+        System.out.println("Number of CS Requests executed: " + server.numOfCSReqsExecuted);
     }
 
 }
@@ -103,24 +71,21 @@ class ServerListener implements Runnable {
                     Message msg = (Message) inputStream.readObject();
                     Payload payload = Payload.getPayload(msg.data);
                     if (payload.messageType == 3) {
+                        // lock acquired
                         server.incNumOfCSReqsExecuted();
-                        int count = 0;
-                        if (server.perNodeStatus.containsKey(msg.source.getID())) {
-                            count = server.perNodeStatus.get(msg.source.getID());
-                        }
-                        server.perNodeStatus.put(msg.source.getID(), count + 1);
-                        server.addLockAcquiredToHistory(msg.source);
                     } else if (payload.messageType == 4) {
-                        server.addLockReleasedToHistory(msg.source);
+
+                        // lock released
                     }
-                    outputStream.close();
                     inputStream.close();
+                    outputStream.close();
                 } catch (Exception e) {
                     s.close();
                 }
             }
 
         } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
