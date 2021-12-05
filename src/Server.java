@@ -8,8 +8,9 @@ public class Server {
 
     private int portNum;
     private int expectedNumOfCSReqs;
+    private int numOfNodes;
+    private int numOfActiveNodes;
 
-    // Should be equal to (numberOfNodes) * (numOfCSReqs)
     private int numOfCSReqsExecuted = 0;
 
     public Server() {
@@ -19,19 +20,25 @@ public class Server {
         return numOfCSReqsExecuted++;
     }
 
+    public synchronized int decNumOfActiveNode() {
+        return this.numOfActiveNodes--;
+    }
+
     public synchronized boolean targetComplete() {
-        return numOfCSReqsExecuted == expectedNumOfCSReqs;
+        return numOfActiveNodes == 0;
     }
 
     public static void main(String[] args) {
         Server server = new Server();
         if (args.length < 2) {
             System.out.println(
-                    "Insufficient args. Usage: \n\t java Server [port number] [expected num of cs reqs]");
+                    "Insufficient args. Usage: \n\t java Server [port number] [expected num of cs reqs] [num of nodes]");
             return;
         }
         server.portNum = Integer.parseInt(args[0]);
         server.expectedNumOfCSReqs = Integer.parseInt(args[1]);
+        server.numOfNodes = Integer.parseInt(args[2]);
+        server.numOfActiveNodes = server.numOfNodes;
         ServerListener listener = new ServerListener(server, server.portNum);
         Thread listenerThread = new Thread(listener, "th_serverListener");
         listenerThread.start();
@@ -40,8 +47,10 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("Number of CS requests: " + server.expectedNumOfCSReqs);
-        System.out.println("Number of CS Requests executed: " + server.numOfCSReqsExecuted);
+        assert server.expectedNumOfCSReqs == server.numOfCSReqsExecuted;
+        // System.out.println("Number of CS requests: " + server.expectedNumOfCSReqs);
+        // System.out.println("Number of CS Requests executed: " +
+        // server.numOfCSReqsExecuted);
     }
 
 }
@@ -74,8 +83,9 @@ class ServerListener implements Runnable {
                         // lock acquired
                         server.incNumOfCSReqsExecuted();
                     } else if (payload.messageType == 4) {
-
                         // lock released
+                    } else if (payload.messageType == 5) {
+                        server.decNumOfActiveNode();
                     }
                     inputStream.close();
                     outputStream.close();

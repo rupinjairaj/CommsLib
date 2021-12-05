@@ -14,6 +14,8 @@ class Payload implements java.io.Serializable {
 	// the lock and is excuting the CS
 	// if type is 4 -> the peer sends this to the central server to denote it holds
 	// the lock and is excuting the CS
+	// if type is 5 -> the peer sends this to the central server to denote it is
+	// done executing all its CS tasks
 	int messageType;
 	int clockVal;
 

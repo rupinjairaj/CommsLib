@@ -61,6 +61,7 @@ class Application {
                 e.printStackTrace();
             }
         }
+        this.notifyServer(5);
         this.lock.notifyPeersAndAwaitPeerCompletion();
     }
 
