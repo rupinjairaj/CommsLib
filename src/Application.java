@@ -58,7 +58,7 @@ class Application {
                 this.notifyServer(4);
                 this.lock.unlock();
             } catch (Exception e) {
-                e.printStackTrace();
+                // e.printStackTrace();
             }
         }
         this.notifyServer(5);

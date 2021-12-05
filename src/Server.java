@@ -45,7 +45,7 @@ public class Server {
         try {
             listenerThread.join();
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
         assert server.expectedNumOfCSReqs == server.numOfCSReqsExecuted;
         // System.out.println("Number of CS requests: " + server.expectedNumOfCSReqs);
@@ -95,7 +95,7 @@ class ServerListener implements Runnable {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 }
